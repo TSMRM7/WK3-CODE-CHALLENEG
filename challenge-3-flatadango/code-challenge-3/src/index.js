@@ -1,37 +1,40 @@
+// Function to fetch films and populate the list
 function fetchFilms() {
     fetch('http://localhost:3000/films')
         .then((response) => response.json())
         .then((films) => {
             const filmsList = document.getElementById('films');
-            filmsList.innerHTML = '';
+            filmsList.innerHTML = ''; // Clear placeholder
 
             films.forEach((film) => {
                 const li = document.createElement('li');
                 li.className = 'film item';
                 li.innerText = film.title;
 
-
-                li.onclick = () => loadFilmDetails(film);
-
-
+                // Add delete button
                 const deleteButton = document.createElement('button');
                 deleteButton.innerText = 'Delete';
                 deleteButton.className = 'ui red button';
-                deleteButton.onclick = (e) => {
-                    e.stopPropagation();
+                deleteButton.onclick = (event) => {
+                    event.stopPropagation(); // Prevent the film from being loaded when clicking delete
                     deleteFilm(film.id, li);
                 };
                 li.appendChild(deleteButton);
 
+                // Add click event to load film details when clicked
+                li.onclick = () => loadFilmDetails(film);
+
                 filmsList.appendChild(li);
             });
 
-
-            loadFilmDetails(films[0]);
+            // Load the details of the first film in the list by default
+            if (films.length > 0) {
+                loadFilmDetails(films[0]);
+            }
         });
 }
 
-
+// Function to load film details
 function loadFilmDetails(film) {
     const title = document.getElementById('title');
     const runtime = document.getElementById('runtime');
@@ -47,27 +50,28 @@ function loadFilmDetails(film) {
     showtime.innerText = film.showtime;
     poster.src = film.poster;
 
-
+    // Calculate available tickets
     const availableTickets = film.capacity - film.tickets_sold;
     ticketNum.innerText = availableTickets;
 
-
+    // Update button and list item based on availability
     if (availableTickets <= 0) {
         buyTicketButton.innerText = 'Sold Out';
+        buyTicketButton.disabled = true; // Disable button if sold out
         document.querySelector(`li:contains('${film.title}')`).classList.add('sold-out');
-        buyTicketButton.onclick = null;
     } else {
         buyTicketButton.innerText = 'Buy Ticket';
+        buyTicketButton.disabled = false; // Enable button if tickets are available
         buyTicketButton.onclick = () => buyTicket(film);
     }
 }
 
-
+// Function to handle buying a ticket
 function buyTicket(film) {
     const availableTickets = film.capacity - film.tickets_sold;
 
     if (availableTickets > 0) {
-
+        // Update tickets sold on the backend
         fetch(`http://localhost:3000/films/${film.id}`, {
             method: 'PATCH',
             headers: {
@@ -77,13 +81,13 @@ function buyTicket(film) {
         })
             .then((response) => response.json())
             .then((updatedFilm) => {
-                loadFilmDetails(updatedFilm);
+                loadFilmDetails(updatedFilm); // Reload film details
                 postTicket(updatedFilm.id);
             });
     }
 }
 
-
+// Function to post a ticket to the database
 function postTicket(filmId) {
     fetch('http://localhost:3000/tickets', {
         method: 'POST',
@@ -94,15 +98,15 @@ function postTicket(filmId) {
     });
 }
 
-
+// Function to delete a film
 function deleteFilm(id, li) {
     fetch(`http://localhost:3000/films/${id}`, {
         method: 'DELETE',
     }).then(() => {
-        li.remove();
-        fetchFilms();
+        li.remove(); // Remove film from the list
+        fetchFilms(); // Refresh the list
     });
 }
 
-
+// Fetch films when the page loads
 document.addEventListener('DOMContentLoaded', fetchFilms);
